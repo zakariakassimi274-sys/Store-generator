@@ -1,0 +1,335 @@
+import { useState } from “react”;
+
+const storeTypes = [
+{ id: “fashion”, label: “👗 أزياء وملابس”, color: “#ec4899” },
+{ id: “electronics”, label: “📱 إلكترونيات”, color: “#3b82f6” },
+{ id: “food”, label: “🍕 طعام ومشروبات”, color: “#f59e0b” },
+{ id: “beauty”, label: “💄 عناية وجمال”, color: “#a855f7” },
+{ id: “home”, label: “🏠 ديكور ومنزل”, color: “#10b981” },
+{ id: “sports”, label: “⚽ رياضة ولياقة”, color: “#ef4444” },
+];
+
+const themes = [
+{ id: “dark”, label: “🌑 داكن فاخر”, bg: “#0a0a0a”, accent: “#c8a96e”, text: “#f0ece4” },
+{ id: “light”, label: “☀️ فاتح نظيف”, bg: “#ffffff”, accent: “#2563eb”, text: “#1a1a1a” },
+{ id: “warm”, label: “🍊 دافئ عصري”, bg: “#fff8f0”, accent: “#c8813a”, text: “#1a0f05” },
+{ id: “bold”, label: “⚡ جريء ملون”, bg: “#0f0a1e”, accent: “#7c3aed”, text: “#f5f3ff” },
+];
+
+const sampleProducts = {
+fashion: [
+{ name: “فستان سهرة فاخر”, price: “299”, emoji: “👗” },
+{ name: “حقيبة جلد إيطالي”, price: “449”, emoji: “👜” },
+{ name: “حذاء كعب عالي”, price: “199”, emoji: “👠” },
+{ name: “عباءة مطرزة”, price: “349”, emoji: “🧣” },
+],
+electronics: [
+{ name: “سماعة لاسلكية Pro”, price: “399”, emoji: “🎧” },
+{ name: “ساعة ذكية X2”, price: “599”, emoji: “⌚” },
+{ name: “مكبر صوت بلوتوث”, price: “249”, emoji: “🔊” },
+{ name: “شاحن لاسلكي سريع”, price: “149”, emoji: “⚡” },
+],
+food: [
+{ name: “قهوة أرابيكا فاخرة”, price: “89”, emoji: “☕” },
+{ name: “شوكولاتة بلجيكية”, price: “129”, emoji: “🍫” },
+{ name: “عسل سدر طبيعي”, price: “199”, emoji: “🍯” },
+{ name: “تمر مجدول ممتاز”, price: “159”, emoji: “🌴” },
+],
+beauty: [
+{ name: “كريم ترطيب فاخر”, price: “189”, emoji: “✨” },
+{ name: “عطر عود أصيل”, price: “499”, emoji: “🌸” },
+{ name: “زيت أرغان طبيعي”, price: “149”, emoji: “💆” },
+{ name: “مجموعة العناية”, price: “299”, emoji: “💄” },
+],
+home: [
+{ name: “إضاءة ذكية LED”, price: “199”, emoji: “💡” },
+{ name: “كنبة مخمل فاخر”, price: “1299”, emoji: “🛋️” },
+{ name: “لوحة فنية عصرية”, price: “349”, emoji: “🖼️” },
+{ name: “طقم شاي ذهبي”, price: “249”, emoji: “🫖” },
+],
+sports: [
+{ name: “حذاء رياضي Pro”, price: “349”, emoji: “👟” },
+{ name: “حقيبة جيم احترافية”, price: “199”, emoji: “🎒” },
+{ name: “ساعة لياقة GPS”, price: “599”, emoji: “🏃” },
+{ name: “مقاومة تمرين Set”, price: “149”, emoji: “💪” },
+],
+};
+
+export default function StoreGenerator() {
+const [step, setStep] = useState(1);
+const [storeName, setStoreName] = useState(””);
+const [storeType, setStoreType] = useState(null);
+const [theme, setTheme] = useState(null);
+const [generating, setGenerating] = useState(false);
+const [generated, setGenerated] = useState(false);
+const [aiDesc, setAiDesc] = useState(””);
+const [loadingDesc, setLoadingDesc] = useState(false);
+const [cart, setCart] = useState([]);
+const [toast, setToast] = useState(null);
+const [previewPage, setPreviewPage] = useState(“home”);
+
+const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2000); };
+
+const generateStore = async () => {
+setGenerating(true);
+setLoadingDesc(true);
+try {
+const res = await fetch(“https://api.anthropic.com/v1/messages”, {
+method: “POST”,
+headers: { “Content-Type”: “application/json” },
+body: JSON.stringify({
+model: “claude-sonnet-4-20250514”,
+max_tokens: 1000,
+messages: [{
+role: “user”,
+content: `اكتب وصفاً تسويقياً احترافياً لمتجر إلكتروني باسم "${storeName}" في مجال ${storeTypes.find(s => s.id === storeType)?.label}. اكتب: 1) شعار المتجر (tagline) في جملة واحدة جذابة. 2) وصف المتجر في 2-3 جمل. 3) 3 مميزات رئيسية. اكتب بالعربية فقط وبأسلوب تسويقي مقنع.`
+}],
+}),
+});
+const data = await res.json();
+const text = data.content?.map(b => b.text || “”).join(”\n”) || “”;
+setAiDesc(text);
+} catch (e) {
+setAiDesc(“متجرك الاحترافي جاهز للبيع! تصميم عصري وتجربة تسوق لا مثيل لها.”);
+}
+setLoadingDesc(false);
+setTimeout(() => { setGenerating(false); setGenerated(true); setStep(4); }, 2000);
+};
+
+const selectedTheme = themes.find(t => t.id === theme) || themes[0];
+const products = sampleProducts[storeType] || sampleProducts.electronics;
+const typeInfo = storeTypes.find(s => s.id === storeType);
+
+// PREVIEW STORE
+if (generated && step === 4) {
+return (
+<div style={{ fontFamily: “‘Cairo’, sans-serif”, minHeight: “100vh”, background: “#0a0f1a”, direction: “rtl” }}>
+<style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } .store-nav { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); border-bottom: 1px solid #ffffff11; } .prod-card { border-radius: 12px; overflow: hidden; transition: all 0.3s; cursor: pointer; } .prod-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px #00000066; } .add-btn { border: none; border-radius: 8px; padding: 10px; width: 100%; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px; } .add-btn:hover { opacity: 0.9; transform: translateY(-1px); } .tool-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #111827; border-top: 1px solid #1f2937; padding: 12px 20px; display: flex; gap: 10px; justify-content: center; z-index: 100; } .tool-btn { border: none; border-radius: 10px; padding: 10px 20px; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }`}</style>
+
+```
+    {toast && (
+      <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: selectedTheme.accent, color: "#fff", padding: "10px 24px", borderRadius: 20, zIndex: 200, fontFamily: "'Cairo'", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap" }}>
+        {toast}
+      </div>
+    )}
+
+    {/* STORE NAV */}
+    <nav className="store-nav" style={{ background: selectedTheme.bg + "dd", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 900, color: selectedTheme.accent }}>{storeName || "متجري"}</div>
+      <div style={{ display: "flex", gap: 20, fontFamily: "'Cairo'", fontSize: 13, color: selectedTheme.text + "88" }}>
+        <span onClick={() => setPreviewPage("home")} style={{ cursor: "pointer", color: previewPage === "home" ? selectedTheme.accent : undefined }}>الرئيسية</span>
+        <span onClick={() => setPreviewPage("products")} style={{ cursor: "pointer", color: previewPage === "products" ? selectedTheme.accent : undefined }}>المنتجات</span>
+      </div>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <span style={{ cursor: "pointer", fontSize: 18 }}>🔍</span>
+        <span style={{ cursor: "pointer", fontSize: 18, position: "relative" }} onClick={() => showToast("🛒 سلة التسوق")}>
+          🛒 <span style={{ background: selectedTheme.accent, color: "#fff", borderRadius: "50%", fontSize: 9, padding: "1px 4px", fontWeight: 700 }}>{cart.length}</span>
+        </span>
+      </div>
+    </nav>
+
+    {previewPage === "home" && (
+      <>
+        {/* HERO */}
+        <div style={{ background: `linear-gradient(135deg, ${selectedTheme.bg} 0%, ${selectedTheme.accent}22 100%)`, padding: "80px 32px", textAlign: "center", borderBottom: `1px solid ${selectedTheme.accent}22` }}>
+          <div style={{ fontFamily: "'Cairo'", fontSize: 12, letterSpacing: 4, color: selectedTheme.accent, textTransform: "uppercase", marginBottom: 16 }}>{typeInfo?.label}</div>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(36px, 7vw, 72px)", fontWeight: 900, color: selectedTheme.text, lineHeight: 1.1, marginBottom: 20 }}>
+            {storeName || "متجري"}<br />
+            <em style={{ color: selectedTheme.accent, fontStyle: "normal" }}>الوجهة الأولى</em>
+          </h1>
+          {loadingDesc ? (
+            <div style={{ color: selectedTheme.accent, fontFamily: "'Cairo'", fontSize: 14 }}>✨ الذكاء الاصطناعي يكتب وصف متجرك...</div>
+          ) : (
+            <p style={{ fontFamily: "'Cairo'", color: selectedTheme.text + "88", fontSize: 16, maxWidth: 500, margin: "0 auto 32px", lineHeight: 1.8 }}>
+              {aiDesc.split('\n')[0] || "تسوّق أفضل المنتجات بأسعار لا تُقاوم"}
+            </p>
+          )}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <button onClick={() => setPreviewPage("products")} style={{ background: selectedTheme.accent, color: "#fff", border: "none", borderRadius: 10, padding: "14px 32px", fontFamily: "'Cairo'", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+              تسوّق الآن
+            </button>
+            <button style={{ background: "transparent", color: selectedTheme.accent, border: `1px solid ${selectedTheme.accent}`, borderRadius: 10, padding: "14px 24px", fontFamily: "'Cairo'", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
+              تعرّف علينا
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 40, justifyContent: "center", marginTop: 48, borderTop: `1px solid ${selectedTheme.accent}22`, paddingTop: 32 }}>
+            {[["500+", "منتج"], ["10K+", "عميل"], ["4.9★", "تقييم"], ["مجاني", "التوصيل"]].map(([n, l]) => (
+              <div key={l} style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: "'Playfair Display'", fontSize: 24, color: selectedTheme.accent, fontWeight: 700 }}>{n}</div>
+                <div style={{ fontFamily: "'Cairo'", fontSize: 12, color: selectedTheme.text + "55", marginTop: 4 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FEATURED PRODUCTS */}
+        <div style={{ padding: "48px 24px", background: selectedTheme.bg }}>
+          <h2 style={{ fontFamily: "'Playfair Display'", fontSize: 32, color: selectedTheme.text, textAlign: "center", marginBottom: 32 }}>
+            ⭐ المنتجات <em style={{ color: selectedTheme.accent }}>المميزة</em>
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 20, maxWidth: 1000, margin: "0 auto" }}>
+            {products.map((p, i) => (
+              <div key={i} className="prod-card" style={{ background: selectedTheme.bg === "#ffffff" ? "#f8f9fa" : "#ffffff11", border: `1px solid ${selectedTheme.accent}22` }}>
+                <div style={{ padding: "32px 20px", textAlign: "center", background: selectedTheme.accent + "11", fontSize: 64 }}>{p.emoji}</div>
+                <div style={{ padding: "16px 16px 20px" }}>
+                  <div style={{ fontFamily: "'Cairo'", fontSize: 15, fontWeight: 700, color: selectedTheme.text, marginBottom: 8 }}>{p.name}</div>
+                  <div style={{ fontFamily: "'Playfair Display'", fontSize: 22, color: selectedTheme.accent, fontWeight: 700, marginBottom: 12 }}>{p.price} ر.س</div>
+                  <button className="add-btn" style={{ background: selectedTheme.accent, color: "#fff" }} onClick={() => { setCart(c => [...c, p]); showToast(`✅ أضيف ${p.name}`); }}>
+                    أضف للسلة
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    )}
+
+    {previewPage === "products" && (
+      <div style={{ padding: "32px 24px", background: selectedTheme.bg, minHeight: "80vh" }}>
+        <h2 style={{ fontFamily: "'Playfair Display'", fontSize: 28, color: selectedTheme.text, marginBottom: 24, textAlign: "center" }}>
+          جميع <em style={{ color: selectedTheme.accent }}>المنتجات</em>
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16, maxWidth: 1000, margin: "0 auto" }}>
+          {[...products, ...products].map((p, i) => (
+            <div key={i} className="prod-card" style={{ background: selectedTheme.bg === "#ffffff" ? "#f8f9fa" : "#ffffff11", border: `1px solid ${selectedTheme.accent}22` }}>
+              <div style={{ padding: "24px", textAlign: "center", fontSize: 52 }}>{p.emoji}</div>
+              <div style={{ padding: "12px 14px 16px" }}>
+                <div style={{ fontFamily: "'Cairo'", fontSize: 14, fontWeight: 700, color: selectedTheme.text, marginBottom: 6 }}>{p.name}</div>
+                <div style={{ fontFamily: "'Playfair Display'", fontSize: 20, color: selectedTheme.accent, fontWeight: 700, marginBottom: 10 }}>{p.price} ر.س</div>
+                <button className="add-btn" style={{ background: selectedTheme.accent, color: "#fff" }} onClick={() => { setCart(c => [...c, p]); showToast(`✅ أضيف!`); }}>
+                  أضف للسلة
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* TOOLBAR */}
+    <div className="tool-bar" style={{ paddingBottom: 20 }}>
+      <button className="tool-btn" style={{ background: "#1f2937", color: "#9ca3af" }} onClick={() => { setGenerated(false); setStep(1); setCart([]); setAiDesc(""); }}>
+        🔄 بناء متجر جديد
+      </button>
+      <button className="tool-btn" style={{ background: selectedTheme.accent, color: "#fff" }} onClick={() => showToast("💾 تم حفظ المتجر!")}>
+        💾 حفظ المتجر
+      </button>
+      <button className="tool-btn" style={{ background: "#10b981", color: "#fff" }} onClick={() => showToast("🚀 جاهز للبيع على Flippa!")}>
+        🚀 بيع على Flippa
+      </button>
+    </div>
+    <div style={{ height: 80 }} />
+  </div>
+);
+```
+
+}
+
+// BUILDER STEPS
+return (
+<div style={{ fontFamily: “‘Cairo’, sans-serif”, background: “#080b12”, minHeight: “100vh”, direction: “rtl”, color: “#e8eaf0” }}>
+<style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap'); * { box-sizing: border-box; margin: 0; padding: 0; } .opt-card { background: #0f1520; border: 1.5px solid #1e2535; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; text-align: center; font-family: 'Cairo', sans-serif; } .opt-card:hover { border-color: #334; transform: translateY(-2px); } .opt-card.selected { border-color: var(--ac); background: #141d2b; } .next-btn { background: linear-gradient(135deg, #c8813a, #e8a55a); color: #fff; border: none; border-radius: 12px; padding: 14px; width: 100%; font-family: 'Cairo', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 20px; transition: all 0.2s; } .next-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px #c8813a44; } .next-btn:disabled { background: #333; cursor: not-allowed; transform: none; } .step-dot { width: 10px; height: 10px; border-radius: 50%; transition: all 0.3s; }`}</style>
+
+```
+  {/* HEADER */}
+  <div style={{ background: "#0f1520", borderBottom: "1px solid #1a2035", padding: "20px 24px", textAlign: "center" }}>
+    <h1 style={{ fontFamily: "'Cairo'", fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 6 }}>🏪 منشئ المتاجر بالذكاء الاصطناعي</h1>
+    <p style={{ fontFamily: "'Cairo'", fontSize: 13, color: "#556" }}>ابنِ متجراً احترافياً جاهزاً للبيع في دقيقتين</p>
+    <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 16 }}>
+      {[1, 2, 3].map(s => (
+        <div key={s} className="step-dot" style={{ background: step >= s ? "#c8813a" : "#1e2535", width: step === s ? 24 : 10, borderRadius: step === s ? 5 : "50%" }} />
+      ))}
+    </div>
+  </div>
+
+  <div style={{ maxWidth: 500, margin: "0 auto", padding: "32px 20px" }}>
+
+    {/* STEP 1 — STORE NAME */}
+    {step === 1 && (
+      <div>
+        <div style={{ fontFamily: "'Cairo'", fontSize: 20, fontWeight: 900, color: "#fff", marginBottom: 8 }}>✏️ اسم متجرك</div>
+        <div style={{ fontFamily: "'Cairo'", fontSize: 14, color: "#556", marginBottom: 24 }}>اختر اسماً مميزاً لمتجرك</div>
+        <input
+          style={{ width: "100%", background: "#0f1520", border: "1.5px solid #1e2535", borderRadius: 12, padding: "14px 16px", color: "#fff", fontFamily: "'Cairo'", fontSize: 16, outline: "none" }}
+          placeholder="مثال: نجمة، لوكس، ستايل..."
+          value={storeName}
+          onChange={e => setStoreName(e.target.value)}
+          onFocus={e => e.target.style.borderColor = "#c8813a"}
+          onBlur={e => e.target.style.borderColor = "#1e2535"}
+        />
+        <div style={{ fontFamily: "'Cairo'", fontSize: 13, color: "#334", marginTop: 10 }}>💡 اسم قصير وسهل التذكر يزيد المبيعات</div>
+        <button className="next-btn" disabled={!storeName.trim()} onClick={() => setStep(2)}>
+          التالي ← اختر نوع المتجر
+        </button>
+      </div>
+    )}
+
+    {/* STEP 2 — STORE TYPE + THEME */}
+    {step === 2 && (
+      <div>
+        <div style={{ fontFamily: "'Cairo'", fontSize: 20, fontWeight: 900, color: "#fff", marginBottom: 8 }}>🏪 نوع المتجر</div>
+        <div style={{ fontFamily: "'Cairo'", fontSize: 14, color: "#556", marginBottom: 20 }}>اختر مجال متجرك</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 28 }}>
+          {storeTypes.map(t => (
+            <div key={t.id} className={`opt-card ${storeType === t.id ? "selected" : ""}`} style={{ "--ac": t.color, borderColor: storeType === t.id ? t.color : undefined }} onClick={() => setStoreType(t.id)}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>{t.label.split(" ")[0]}</div>
+              <div style={{ fontSize: 13, color: storeType === t.id ? t.color : "#888", fontWeight: 700 }}>{t.label.split(" ").slice(1).join(" ")}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ fontFamily: "'Cairo'", fontSize: 16, fontWeight: 900, color: "#fff", marginBottom: 14 }}>🎨 ثيم المتجر</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {themes.map(t => (
+            <div key={t.id} className={`opt-card ${theme === t.id ? "selected" : ""}`} style={{ "--ac": t.accent, borderColor: theme === t.id ? t.accent : undefined, display: "flex", alignItems: "center", gap: 10, textAlign: "right" }} onClick={() => setTheme(t.id)}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.bg, border: `3px solid ${t.accent}`, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, color: theme === t.id ? t.accent : "#888", fontWeight: 600 }}>{t.label}</span>
+            </div>
+          ))}
+        </div>
+        <button className="next-btn" disabled={!storeType || !theme} onClick={() => setStep(3)}>
+          التالي ← معاينة وتوليد
+        </button>
+      </div>
+    )}
+
+    {/* STEP 3 — GENERATE */}
+    {step === 3 && (
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 64, marginBottom: 20 }}>🚀</div>
+        <div style={{ fontFamily: "'Cairo'", fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 12 }}>متجرك جاهز للبناء!</div>
+        <div style={{ background: "#0f1520", border: "1px solid #1e2535", borderRadius: 12, padding: 20, marginBottom: 24, textAlign: "right" }}>
+          {[
+            ["🏪 الاسم", storeName],
+            ["📦 النوع", storeTypes.find(s => s.id === storeType)?.label],
+            ["🎨 الثيم", themes.find(t => t.id === theme)?.label],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontFamily: "'Cairo'", fontSize: 14 }}>
+              <span style={{ color: "#556" }}>{k}</span>
+              <span style={{ color: "#c8813a", fontWeight: 700 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+        {generating ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 50, height: 50, border: "4px solid #1e2535", borderTopColor: "#c8813a", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            <div style={{ fontFamily: "'Cairo'", color: "#c8813a", fontSize: 15, fontWeight: 700 }}>🤖 الذكاء الاصطناعي يبني متجرك...</div>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : (
+          <button className="next-btn" onClick={generateStore}>
+            ✨ ابنِ المتجر الآن بالذكاء الاصطناعي
+          </button>
+        )}
+        <button onClick={() => setStep(2)} style={{ background: "transparent", border: "none", color: "#556", fontFamily: "'Cairo'", fontSize: 14, cursor: "pointer", marginTop: 12 }}>
+          ← رجوع
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+```
+
+);
+}
